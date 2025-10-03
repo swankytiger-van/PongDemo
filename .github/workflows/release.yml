@@ -65,22 +65,27 @@ jobs:
           cmake --build build --config Release
           
       - name: Package
-        shell: bash
+        shell: pwsh
         run: |
-          mkdir -p package
-          # ① 找到真实可执行文件（Ninja vs Visual Studio 路径不同）
-          if [ -f build/bin/Release/${{ matrix.exe }} ]; then
-            cp build/bin/Release/${{ matrix.exe }} package/
-          elif [ -f build/${{ matrix.exe }} ]; then
-            cp build/${{ matrix.exe }} package/
-          else
-            find build -name ${{ matrix.exe }} -exec cp {} package/ \;
-          fi
+          New-Item -ItemType Directory -Force package
+          # ① 拷贝可执行文件
+          if (Test-Path "build/bin/Release/${{ matrix.exe }}") {
+            Copy-Item "build/bin/Release/${{ matrix.exe }}" package/
+          } elseif (Test-Path "build/${{ matrix.exe }}") {
+            Copy-Item "build/${{ matrix.exe }}" package/
+          } else {
+            Get-ChildItem -Path build -Name ${{ matrix.exe }} -Recurse | Copy-Item -Destination package/
+          }
           # ② 仅 Windows 拷 dll
-          [[ "${{ runner.os }}" == "Windows" ]] && \
-            cp vcpkg/installed/${{ matrix.triplet }}/bin/*.dll package/ 2>/dev/null || true
+          if ("${{ runner.os }}" -eq "Windows") {
+            Copy-Item vcpkg/installed/${{ matrix.triplet }}/bin/*.dll package/ -ErrorAction SilentlyContinue
+          }
           # ③ 压包
-          (cd package && zip -r ../PongDemo-${{ matrix.triplet }}.zip .)
+          if ("${{ runner.os }}" -eq "Windows") {
+            Compress-Archive -Path package/* -DestinationPath PongDemo-${{ matrix.triplet }}.zip
+          } else {
+            cd package && zip -r ../PongDemo-${{ matrix.triplet }}.zip . && cd ..
+          }
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v1
