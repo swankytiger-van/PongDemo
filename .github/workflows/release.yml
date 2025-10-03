@@ -29,19 +29,22 @@ jobs:
       - uses: actions/checkout@v4
       - name: Convert to full clone
         run: git fetch --unshallow
-      - name: Checkout vcpkg（完整官方库）
+      - name: Bootstrap vcpkg
         run: |
           git clone --depth 1 https://github.com/Microsoft/vcpkg.git
-          ./vcpkg/bootstrap-vcpkg.bat        # Win
-          # mac/linux 用 ./vcpkg/bootstrap-vcpkg.sh
+          cd vcpkg
+          # 跨平台：PowerShell 脚本同时支持 Win/Linux/macOS
+          pwsh -File bootstrap-vcpkg.ps1        # 官方已提供 ps1 脚本
 
-      - name: Install dependencies
+      - name: Install SFML
         run: |
-          ./vcpkg/vcpkg install sfml:x64-windows --triplet=x64-windows
+          ./vcpkg/vcpkg install sfml --triplet=x64-linux      # Ubuntu
+          # ./vcpkg/vcpkg install sfml --triplet=x64-osx        # macOS
+          # ./vcpkg/vcpkg install sfml --triplet=x64-windows    # Win
 
       - name: Configure & Build
         run: |
-          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake
+          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
           cmake --build build --config Release
           
       - name: Package
