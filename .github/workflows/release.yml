@@ -58,9 +58,12 @@ jobs:
         shell: bash
         run: |
           mkdir -p package
-          cp build/bin/Release/${{ matrix.exe }} package/
-          cp -r vcpkg/installed/${{ matrix.triplet }}/bin/*.dll package/ 2>/dev/null || true   # Win
-          cp -r vcpkg/installed/${{ matrix.triplet }}/lib/*.dylib package/ 2>/dev/null || true # macOS
+          # ① 可执行文件（矩阵变量）
+          cp build/${{ matrix.exe }} package/
+          # ② 动态库（仅 Win 需要 dll；Linux/macOS 无）
+          [[ "${{ runner.os }}" == "Windows" ]] && \
+          cp vcpkg/installed/${{ matrix.triplet }}/bin/*.dll package/ 2>/dev/null || true
+          # ③ 压包
           (cd package && zip -r ../PongDemo-${{ matrix.triplet }}.zip .)
 
       - name: Upload to Release
