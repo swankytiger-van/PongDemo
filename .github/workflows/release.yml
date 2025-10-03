@@ -69,13 +69,9 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force package
           # ① 拷贝可执行文件
-          if (Test-Path "build/bin/Release/${{ matrix.exe }}") {
-            Copy-Item "build/bin/Release/${{ matrix.exe }}" package/
-          } elseif (Test-Path "build/${{ matrix.exe }}") {
-            Copy-Item "build/${{ matrix.exe }}" package/
-          } else {
-            Get-ChildItem -Path build -Name ${{ matrix.exe }} -Recurse | Copy-Item -Destination package/
-          }
+          $exe = Get-ChildItem -Path build -Name ${{ matrix.exe }} -File -Recurse | Select-Object -First 1
+          if ($exe) { Copy-Item $exe.FullName package/ }
+          else { throw "Executable ${{ matrix.exe }} not found" }
           # ② 仅 Windows 拷 dll
           if ("${{ runner.os }}" -eq "Windows") {
             Copy-Item vcpkg/installed/${{ matrix.triplet }}/bin/*.dll package/ -ErrorAction SilentlyContinue
