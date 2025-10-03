@@ -29,20 +29,21 @@ jobs:
       - uses: actions/checkout@v4
       - name: Convert to full clone
         run: git fetch --unshallow
-      - name: Setup vcpkg
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgGitCommitId: '501db0f17ef6df184fcdbfbe0f87cde2313bccf4'
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
-          doNotUpdateVcpkg: false          # 允许更新
-          appendedCacheKey: 'v1'           # 手动改版本号可强制清缓存
+      - name: Checkout vcpkg（完整官方库）
+        run: |
+          git clone --depth 1 https://github.com/Microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.bat        # Win
+          # mac/linux 用 ./vcpkg/bootstrap-vcpkg.sh
 
-      - name: Configure CMake
-        uses: lukka/run-cmake@v10
-        with:
-          configurePreset: 'default'
-          buildPreset: 'release'
+      - name: Install dependencies
+        run: |
+          ./vcpkg/vcpkg install sfml:x64-windows --triplet=x64-windows
 
+      - name: Configure & Build
+        run: |
+          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=./vcpkg/scripts/buildsystems/vcpkg.cmake
+          cmake --build build --config Release
+          
       - name: Package
         shell: bash
         run: |
