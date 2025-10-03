@@ -69,7 +69,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force package
           # ① 拷贝可执行文件
-          $exe = Get-ChildItem -Path build -Name ${{ matrix.exe }} -File -Recurse | Select-Object -First 1
+          $exe = Get-ChildItem -Path build -Filter ${{ matrix.exe }} -File -Recurse | Select-Object -First 1
           if ($exe) { Copy-Item -Path $exe.FullName -Destination package/ }
           else { throw "Executable ${{ matrix.exe }} not found" }
           # ② 仅 Windows 拷 dll
