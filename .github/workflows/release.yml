@@ -31,8 +31,10 @@ jobs:
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
-          vcpkgGitCommitId: '501db0f17ef6df184fcdbfbe0f87cde2313bccf4'   # 2024-05 稳定版
+          vcpkgGitCommitId: '501db0f17ef6df184fcdbfbe0f87cde2313bccf4'
           vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+          doNotUpdateVcpkg: false          # 允许更新
+          appendedCacheKey: 'v1'           # 手动改版本号可强制清缓存
 
       - name: Configure CMake
         uses: lukka/run-cmake@v10
