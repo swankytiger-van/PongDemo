@@ -47,7 +47,7 @@
 
 ## 4. 一键跑起来
 ### 4.1 下载即玩
-1. 进入 [Release](https://github.com/你的昵称/PongDemo/releases) 页面  
+1. 进入 [Release](https://github.com/swankytiger-van/PongDemo/releases) 页面  
 2. 下载对应平台 zip → 解压 → 双击 `main.exe`（零依赖）
 
 ### 4.2 自己编译
@@ -69,6 +69,7 @@ cmake --build . --config Debug
 build\bin\Debug\main.exe             # Win
 # ./build/bin/Debug/main             # mac/linux
 
+```
 ---
 
 ## 5.目录规范
@@ -111,6 +112,7 @@ PongDemo/
 | CI 编译失败    | 检查 `vcpkg.json` 里 triplet 与 runner 系统是否一致（win-x64/linux-x64/osx-x64） |
 | Tracy 无法连接 | 先运行 `Tracy.exe`  profiler，再开 `-DENABLE_TRACY=ON` 编译游戏                |
 | 别再用你那个死鬼校园网了 |                                                                 |
+| README显示问题，分级标题异常 |                   记得闭合代码块                            |
 
 ---
 ## 8.许可
