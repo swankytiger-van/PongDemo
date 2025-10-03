@@ -73,6 +73,7 @@ build\bin\Debug\main.exe             # Win
 ---
 
 ## 5.目录规范
+```
 PongDemo/
 ├─ src/                   # 源码
 │  ├─ main.cpp           # 入口
@@ -89,7 +90,7 @@ PongDemo/
 ├─ vcpkg.json             # 依赖清单（CI 用）
 ├─ README.md              # 本文件
 └─ LICENSE                # MIT（后续加）
-
+```
 ---
 
 ## 6.后续开发路线图
@@ -113,8 +114,21 @@ PongDemo/
 | Tracy 无法连接 | 先运行 `Tracy.exe`  profiler，再开 `-DENABLE_TRACY=ON` 编译游戏                |
 | 别再用你那个死鬼校园网了 |                                                                 |
 | README显示问题，分级标题异常 |                   记得闭合代码块                            |
+| CI报错128,vcpkg的问题 | 暂时弃用lukka写法，怀疑是缓存或者其他问题 |
+| 改写法以后缺乏编译依赖|     依赖加装  |
+| CI报错01cannot stat 'build/bin/Release/main': No such file or directory|  使用的Ninja生成器，不带.exe，改变打包路径为跨平台|
+| CI依然报错01 | ubuntu生成规则不会主动生成release文件，更改package操作，寻找正确的可执行文件 |
+| CI报错403 | 无法写出release，需要权限，更改设置 |
 
 ---
 ## 8.许可
 
 ---
+
+## 9.日志
+2025.10.4 0:45 看情况CI三线并行想一起通是很困难了，试试单调ubuntu吧
+2025.10.4 0:57 CI的ubuntu支线终于走到package了
+2025.10.4 1:19 CI的ubuntu支线通了
+2025.10.4 1:35 CI的macos支线通了
+2025.10.4 1:50 意图改CI的windows支线，结果现在三个都不通了
+2025.10.4 2:44 CI功能目前通了，完成，洗澡刷牙睡觉
