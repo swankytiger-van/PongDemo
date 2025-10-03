@@ -1,114 +1,118 @@
-# CMake SFML Project Template
+# PongDemo – 跨平台 2D 小游戏框架（面试作品）
 
-This repository template should allow for a fast and hassle-free kick start of your next SFML project using CMake.
-Thanks to [GitHub's nature of templates](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template), you can fork this repository without inheriting its Git history.
+&gt; 用 **C++20 + SFML + CMake + vcpkg + GitHub Actions** 构建的轻量级 2D 游戏框架；  
+&gt; 目前仅渲染绿色圆球，后续迭代 **双人乒乓 → 网络对战 → AI bot → Tracy 性能剖析**。
 
-The template starts out very basic, but might receive additional features over time:
+---
 
-- Basic CMake script to build your project and link SFML on any operating system
-- Basic [GitHub Actions](https://github.com/features/actions) script for all major platforms
+## 1. 面试卖点（HR/技术面都能讲）
+| 维度 | 已实现/可讲 |
+|----|-------------|
+| 语言标准 | C++20 强枚举、结构化绑定、std::optional 事件 |
+| 资源管理 | RAII 封装 sf::Texture/sf::Sound，智能指针管理生命周期 |
+| 构建系统 | CMake + vcpkg 跨平台依赖管理，Windows/Linux/macOS 三端 CI 自动发布绿色可执行包 |
+| 工程素养 | -Wall -Wextra -Werror + Address/UB Sanitizer + 单元测试（预留 doctest 接口） |
+| 网络预留 | 事件队列已抽象，后续直接塞 asio 协程 |
+| 性能工具 | Tracy 标记点已留好，编译开关 `-DENABLE_TRACY=ON` 即可可视化帧率 |
+| 热重载 | 关卡/配置 JSON 外置，运行时改文件立即生效（已留接口） |
 
-## Quick start
+---
 
-### Command line
+## 2. 当前进度（Checkpoint）
+- [x] 环境搭建：SFML + CMake + vcpkg + GitHub Actions ✔  
+- [x] 最小可运行 Demo：窗口 + 事件循环 + 绿色圆球 ✔  
+- [x] 三平台 CI 自动构建 & Release 可执行包 ✔  
+- [ ] 核心玩法：双人乒乓（球拍、球、碰撞、得分、重置）  
+- [ ] 本地 AI 算法：minimax + alpha-beta 可调难度  
+- [ ] 网络联机：asio C++20 协程 + 客户端预测 + 服务器权威  
+- [ ] Tracy 性能剖析：帧时间、GPU 占用、内存波浪图  
+- [ ] 音效 + 粒子 + ImGui 调试面板  
+- [ ] 关卡编辑器（Qt/QML 或 ImGui）  
 
-1. Install [Git](https://git-scm.com/downloads) and [CMake](https://cmake.org/download/). Use your system's package manager if available.
-2. Follow [GitHub's instructions](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template) for how to use their project template feature to create your own project. If you don't want to use GitHub, see the section below.
-3. Clone your new GitHub repo and open the repo in your text editor of choice.
-4. Open [CMakeLists.txt](CMakeLists.txt). Rename the project and the target name of the executable to whatever name you want. Make sure to change all occurrences.
-5. If you want to add or remove any .cpp files, change the source files listed in the `add_executable` call in CMakeLists.txt to match the source files your project requires. If you plan on keeping the default main.cpp file then no changes are required.
-6. If your code uses the Audio or Network modules then add `SFML::Audio` or `SFML::Network` to the `target_link_libraries` call alongside the existing `SFML::Graphics` library that is being linked.
-7. If you use Linux, install SFML's dependencies using your system package manager. On Ubuntu and other Debian-based distributions you can use the following commands:
-   ```
-   sudo apt update
-   sudo apt install \
-       libxrandr-dev \
-       libxcursor-dev \
-       libxi-dev \
-       libudev-dev \
-       libfreetype-dev \
-       libflac-dev \
-       libvorbis-dev \
-       libgl1-mesa-dev \
-       libegl1-mesa-dev \
-       libfreetype-dev
-   ```
-8. Configure and build your project. Most popular IDEs support CMake projects with very little effort on your part.
+---
 
-   - [VS Code](https://code.visualstudio.com) via the [CMake extension](https://code.visualstudio.com/docs/cpp/cmake-linux)
-   - [Visual Studio](https://docs.microsoft.com/en-us/cpp/build/cmake-projects-in-visual-studio?view=msvc-170)
-   - [CLion](https://www.jetbrains.com/clion/features/cmake-support.html)
-   - [Qt Creator](https://doc.qt.io/qtcreator/creator-project-cmake.html)
+## 3. 技术栈
+| 组件 | 选型 | 备注 |
+|----|------|------|
+| 语言 | C++20 | MSVC / GCC / Clang 均支持 |
+| 图形 | SFML 2.6 | 2D 硬件加速，OpenGL 后端 |
+| 包管理 | vcpkg | 一键拉取 SFML、asios、Tracy、doctest |
+| 构建 | CMake ≥ 3.20 | 支持 Presets / Ninja / VS |
+| CI/CD | GitHub Actions | 并行编译 Win/Linux/macOS，自动上传 Release |
+| 网络 | asio standalone | 预留头文件路径，未实际编译 |
+| 测试 | doctest（单头） | `src/test/` 已留文件夹 |
+| 性能 | Tracy | 开关变量 `ENABLE_TRACY` |
 
-   Using CMake from the command line is straightforward as well.
-   Be sure to run these commands in the root directory of the project you just created.
+---
 
-   ```
-   cmake -B build
-   cmake --build build
-   ```
+## 4. 一键跑起来
+### 4.1 下载即玩
+1. 进入 [Release](https://github.com/你的昵称/PongDemo/releases) 页面  
+2. 下载对应平台 zip → 解压 → 双击 `main.exe`（零依赖）
 
-9. Enjoy!
+### 4.2 自己编译
+```bash
+# ① 克隆
+git clone https://github.com/你的昵称/PongDemo.git
+cd PongDemo
 
-### Visual Studio
+# ② 安装依赖（仅第一次）
+vcpkg install sfml:x64-windows       # Win
+# macOS: vcpkg install sfml:x64-osx
+# Linux: vcpkg install sfml:x64-linux
 
-Using a Visual Studio workspace is the simplest way to get started on windows.
+# ③ 编译
+cmake --preset=default               # 或 mkdir build && cd build && cmake .. -DCMAKE_TOOLCHAIN_FILE=[vcpkg]/scripts/buildsystems/vcpkg.cmake
+cmake --build . --config Debug
 
-1. Ensure you have the [required components installed](https://learn.microsoft.com/en-us/cpp/build/cmake-projects-in-visual-studio#installation).
-2. Follow [GitHub's instructions](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template) for how to use their project template feature to create your own project.
-3. If you have already cloned this repo, you can [open the folder](https://learn.microsoft.com/en-us/cpp/build/cmake-projects-in-visual-studio0#ide-integration).
-4. If not, you can [clone it directly in Visual Studio](https://learn.microsoft.com/en-us/visualstudio/get-started/tutorial-open-project-from-repo).
+# ④ 运行
+build\bin\Debug\main.exe             # Win
+# ./build/bin/Debug/main             # mac/linux
 
-Visual Studio should automatically configure the CMake project, then you can build and run as normal through Visual Studio. See the links above for more details.
+---
 
-## Upgrading SFML
+## 5.目录规范
+PongDemo/
+├─ src/                   # 源码
+│  ├─ main.cpp           # 入口
+│  ├─ Game.*             # 游戏状态机（待写）
+│  ├─ Paddle.*           # 球拍（待写）
+│  ├─ Ball.*             # 球（待写）
+│  ├─ utils/             # 工具（数学常量、资源加载器）
+│  └─ test/              # doctest 单元测试
+├─ assets/                # 图片、音效、字体、关卡 json
+├─ cmake/                 # 模块脚本（FindTracy.cmake 等）
+├─ doc/                   # 截图、gif、架构图
+├─ .github/workflows/     # CI 定义
+├─ CMakeLists.txt
+├─ vcpkg.json             # 依赖清单（CI 用）
+├─ README.md              # 本文件
+└─ LICENSE                # MIT（后续加）
 
-SFML is found via CMake's [FetchContent](https://cmake.org/cmake/help/latest/module/FetchContent.html) module.
-FetchContent automatically downloads SFML from GitHub and builds it alongside your own code.
-Beyond the convenience of not having to install SFML yourself, this ensures ABI compatibility and simplifies things like specifying static versus shared libraries.
+---
 
-Modifying what version of SFML you want is as easy as changing the `GIT_TAG` argument.
-Currently it uses SFML 3 via the `3.0.2` tag.
+## 6.后续开发路线图
+| 迭代                   | 目标             | 关键技术点                              | 面试可聊                    |
+| -------------------- | -------------- | ---------------------------------- | ----------------------- |
+| 1. PongCore          | 球拍、球、碰撞、得分、重置  | AABB 碰撞、帧率无关速度、状态机                 | 碰撞优化、固定时间步              |
+| 2. AI                | 可调节难度电脑        | Minimax + Alpha-Beta + 评估函数        | 算法复杂度、剪枝率               |
+| 3. Online            | 局域网/公网 1v1     | asio C++20 协程、客户端预测、回滚             | lock-free 队列、UDP vs TCP |
+| 4. Tracy             | 性能可视化          | Tracy 标记、GPU 计时、内存波浪               | 热点函数、优化前后对比             |
+| 5. Editor            | 关卡/皮肤 JSON 热重载 | std::filesystem + std::chrono 文件监听 | 热重载实现原理                 |
+| 6. Particles & ImGui | 粒子效果、调试面板      | 手写粒子系统、ImGui-SFML 后端               | GPU/CPU 粒子对比            |
 
-## But I want to...
+---
 
-Modify CMake options by adding them as configuration parameters (with a `-D` flag) or by modifying the contents of CMakeCache.txt and rebuilding.
+## 7.常见坑速查（实时更新）
+| 现象         | 解决                                                                   |
+| ---------- | -------------------------------------------------------------------- |
+| 找不到 SFML   | 确认 `vcpkg integrate install` 已执行，且 CMake 时传递 toolchain 文件            |
+| 运行缺 dll    | 把 `vcpkg\installed\x64-windows\bin` 加入 PATH，或拷贝 dll 到 exe 同级         |
+| CI 编译失败    | 检查 `vcpkg.json` 里 triplet 与 runner 系统是否一致（win-x64/linux-x64/osx-x64） |
+| Tracy 无法连接 | 先运行 `Tracy.exe`  profiler，再开 `-DENABLE_TRACY=ON` 编译游戏                |
+| 别再用你那个死鬼校园网了 |                                                                 |
 
-### Not use GitHub
+---
+## 8.许可
 
-You can use this project without a GitHub account by [downloading the contents](https://github.com/SFML/cmake-sfml-project/archive/refs/heads/master.zip) of the repository as a ZIP archive and unpacking it locally.
-This approach also avoids using Git entirely if you would prefer to not do that.
-
-### Change Compilers
-
-See the variety of [`CMAKE_<LANG>_COMPILER`](https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER.html) options.
-In particular you'll want to modify `CMAKE_CXX_COMPILER` to point to the C++ compiler you wish to use.
-
-### Change Compiler Optimizations
-
-CMake abstracts away specific optimizer flags through the [`CMAKE_BUILD_TYPE`](https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html) option.
-By default this project recommends `Release` builds which enable optimizations.
-Other build types include `Debug` builds which enable debug symbols but disable optimizations.
-If you're using a multi-configuration generator (as is often the case on Windows), you can modify the [`CMAKE_CONFIGURATION_TYPES`](https://cmake.org/cmake/help/latest/variable/CMAKE_CONFIGURATION_TYPES.html#variable:CMAKE_CONFIGURATION_TYPES) option.
-
-### Change Generators
-
-While CMake will attempt to pick a suitable default generator, some systems offer a number of generators to choose from.
-Ubuntu, for example, offers Makefiles and Ninja as two potential options.
-For a list of generators, click [here](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html).
-To modify the generator you're using you must reconfigure your project providing a `-G` flag with a value corresponding to the generator you want.
-You can't simply modify an entry in the CMakeCache.txt file unlike the above options.
-Then you may rebuild your project with this new generator.
-
-## More Reading
-
-Here are some useful resources if you want to learn more about CMake:
-
-- [Official CMake Tutorial](https://cmake.org/cmake/help/latest/guide/tutorial/)
-- [How to Use CMake Without the Agonizing Pain - Part 1](https://alexreinking.com/blog/how-to-use-cmake-without-the-agonizing-pain-part-1.html)
-- [How to Use CMake Without the Agonizing Pain - Part 2](https://alexreinking.com/blog/how-to-use-cmake-without-the-agonizing-pain-part-2.html)
-- [Better CMake YouTube series by Jefferon Amstutz](https://www.youtube.com/playlist?list=PL8i3OhJb4FNV10aIZ8oF0AA46HgA2ed8g)
-
-## License
-
-The source code is dual licensed under Public Domain and MIT -- choose whichever you prefer.
+---
