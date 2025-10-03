@@ -1,0 +1,63 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [ main ]      # 每次 push 自动生成 nightly
+  workflow_dispatch:        # 手动触发
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            triplet: x64-windows
+            exe: main.exe
+          - os: ubuntu-latest
+            triplet: x64-linux
+            exe: main
+          - os: macos-latest
+            triplet: x64-osx
+            exe: main
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: '501db0f17ef6df184fcdbfbe0f87cde2313bccf4'   # 2024-05 稳定版
+          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+
+      - name: Configure CMake
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: 'default'
+          buildPreset: 'release'
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p package
+          cp build/bin/Release/${{ matrix.exe }} package/
+          cp -r vcpkg/installed/${{ matrix.triplet }}/bin/*.dll package/ 2>/dev/null || true   # Win
+          cp -r vcpkg/installed/${{ matrix.triplet }}/lib/*.dylib package/ 2>/dev/null || true # macOS
+          (cd package && zip -r ../PongDemo-${{ matrix.triplet }}.zip .)
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v1
+        if: github.event_name != 'pull_request'
+        with:
+          tag_name: nightly
+          name: "Nightly Build"
+          body: "Auto-generated nightly build for ${{ matrix.triplet }}"
+          files: PongDemo-${{ matrix.triplet }}.zip
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
