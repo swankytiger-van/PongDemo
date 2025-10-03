@@ -27,7 +27,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
+      - name: Convert to full clone
+        run: git fetch --unshallow
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
