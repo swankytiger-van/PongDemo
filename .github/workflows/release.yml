@@ -31,8 +31,13 @@ jobs:
         run: git fetch --unshallow
       - name: Install system deps
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake ninja-build libgl1-mesa-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libx11-dev libxrandr-dev libxcursor-dev libxi-dev
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            sudo apt-get update
+            sudo apt-get install -y cmake ninja-build libgl1-mesa-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libx11-dev libxrandr-dev libxcursor-dev libxi-dev
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            brew install cmake ninja
+          fi
+        shell: bash
       - name: Bootstrap vcpkg
         run: |
           git clone --depth 1 https://github.com/Microsoft/vcpkg.git
@@ -44,14 +49,11 @@ jobs:
         shell: bash
 
       - name: Install SFML
-        run: |
-          ./vcpkg/vcpkg install sfml --triplet=x64-linux      # Ubuntu
-          # ./vcpkg/vcpkg install sfml --triplet=x64-osx        # macOS
-          # ./vcpkg/vcpkg install sfml --triplet=x64-windows    # Win
+        run: ./vcpkg/vcpkg install sfml --triplet=${{ matrix.triplet }}
 
       - name: Configure & Build
         run: |
-          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
+          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake -G Ninja -DCMAKE_BUILD_TYPE=Release
           cmake --build build --config Release
           
       - name: Package
