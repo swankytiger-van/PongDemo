@@ -29,9 +29,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Convert to full clone
         run: git fetch --unshallow
-      - name: Install Ninja
+      - name: Install Ninja  # 仅 Windows
+        if: runner.os == 'Windows'
         run: choco install ninja -y
       - name: Install system deps
+        if: runner.os != 'Windows'
         run: |
           if [ "${{ runner.os }}" = "Linux" ]; then
             sudo apt-get update
@@ -54,7 +56,7 @@ jobs:
         run: ./vcpkg/vcpkg install sfml --triplet=${{ matrix.triplet }}
 
       - name: Configure & Build
-        shell: pwh
+        shell: pwsh
         run: |
           cmake -B build -S . `
             -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems/vcpkg.cmake" `
