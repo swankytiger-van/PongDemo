@@ -32,9 +32,12 @@ jobs:
       - name: Bootstrap vcpkg
         run: |
           git clone --depth 1 https://github.com/Microsoft/vcpkg.git
-          cd vcpkg
-          # 跨平台：PowerShell 脚本同时支持 Win/Linux/macOS
-          pwsh -File bootstrap-vcpkg.ps1        # 官方已提供 ps1 脚本
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            ./vcpkg/bootstrap-vcpkg.bat
+          else
+            ./vcpkg/bootstrap-vcpkg.sh
+          fi
+        shell: bash
 
       - name: Install SFML
         run: |
