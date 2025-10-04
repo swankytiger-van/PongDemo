@@ -17,13 +17,12 @@ jobs:
             triplet: x64-windows
             exe: main.exe
           - os: ubuntu-latest
-            triplet: x64-linux
+            triplet: x64-linux-dynamic
             exe: main
           - os: macos-latest
-            triplet: x64-osx
+            triplet: arm64-osx 
             exe: main
 
-    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
