@@ -54,7 +54,7 @@ jobs:
       - name: Install SFML
         run: ./vcpkg/vcpkg install sfml --triplet=${{ matrix.triplet }}
 
-      - name: Configure & Build(Windows)
+      - name: Configure & Build (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
