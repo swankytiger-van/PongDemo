@@ -74,6 +74,7 @@ jobs:
           export SFML_DIR="${{ github.workspace }}/vcpkg/installed/${{ matrix.triplet }}/share/sfml"
           export CMAKE_PREFIX_PATH="${{ github.workspace }}/vcpkg/installed/${{ matrix.triplet }}"
           export VCPKG_TARGET_TRIPLET="${{ matrix.triplet }}"
+          export LDFLAGS="-L${{ github.workspace }}/vcpkg/installed/${{ matrix.triplet }}/lib -lpng -lbz2 -lz -lbrotlienc -lbrotlidec"
           export VCPKG_APPLOCAL_DEPS=ON
           cmake -B build -S . \
             -G Ninja \
