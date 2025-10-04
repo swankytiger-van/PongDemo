@@ -1,0 +1,43 @@
+#pragma once
+#include <SFML/Graphics.hpp>
+
+enum class State { Menu, Playing, Paused, GameOver };
+
+class Game {
+public:
+    Game(unsigned width, unsigned height, const std::string& title);
+
+    // 主循环
+    void run();
+
+    // 状态切换
+    void handleEvent(const sf::Event& ev);
+    void update(sf::Time dt);
+    void draw();
+
+    State state() const { return m_state; }
+    void setState(State s) { m_state = s; }
+
+    // 得分接口（先留空，后续加 Ball/Paddle 再实现）
+    void leftScore() { /*TODO*/ }
+    void rightScore() { /*TODO*/ reset(); }
+
+private:
+    void reset();   // 一局重置
+    void menuUpdate(sf::Time dt);
+    void playingUpdate(sf::Time dt);
+    void pausedUpdate(sf::Time dt);
+    void gameOverUpdate(sf::Time dt);
+
+    void menuDraw();
+    void playingDraw();
+    void pausedDraw();
+    void gameOverDraw();
+
+    sf::RenderWindow m_window;
+    State            m_state = State::Menu;
+    std::optional<sf::Font>  m_font;
+    std::optional<sf::Text>  m_menuText;
+    std::optional<sf::Text>  m_pauseText;
+    std::optional<sf::Text>  m_gameOverText;
+};
