@@ -1,6 +1,7 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-
+#include "Paddle.h"
+#include "Ball.h"
 enum class State { Menu, Playing, Paused, GameOver };
 
 class Game {
@@ -33,6 +34,11 @@ private:
     void playingDraw();
     void pausedDraw();
     void gameOverDraw();
+
+    std::optional<Paddle> m_leftPaddle;
+    std::optional<Paddle> m_rightPaddle;
+
+    std::optional<Ball> m_ball;
 
     sf::RenderWindow m_window;
     State            m_state = State::Menu;
