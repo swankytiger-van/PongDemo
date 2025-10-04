@@ -5,9 +5,9 @@ on:
     branches: [ main ]      # 每次 push 自动生成 nightly
   workflow_dispatch:        # 手动触发
   pull_request:
-
 jobs:
   build:
+    runs-on: ${{ matrix.os }}         
     strategy:
       fail-fast: false
       matrix:
@@ -20,7 +20,7 @@ jobs:
             triplet: x64-linux-dynamic
             exe: main
           - os: macos-latest
-            triplet: arm64-osx 
+            triplet: arm64-osx
             exe: main
 
 
