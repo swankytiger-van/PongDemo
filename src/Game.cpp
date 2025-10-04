@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Config.hpp>
 #include <iostream>
+#include <cmath> 
 struct VersionCheck {
     VersionCheck() {
         std::cout << "SFML_MAJOR: " << SFML_VERSION_MAJOR
