@@ -31,7 +31,8 @@ jobs:
       - name: Install Ninja  # 仅 Windows
         if: runner.os == 'Windows'
         run: choco install ninja -y
-      - name: Setup MSVC     
+      - name: Setup MSVC  
+        if: runner.os == 'Windows'   
         uses: microsoft/setup-msbuild@v1.3
       - name: Install system deps
         if: runner.os != 'Windows'
