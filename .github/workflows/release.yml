@@ -31,6 +31,8 @@ jobs:
       - name: Install Ninja  # 仅 Windows
         if: runner.os == 'Windows'
         run: choco install ninja -y
+      - name: Setup MSVC     
+        uses: microsoft/setup-msbuild@v1.3
       - name: Install system deps
         if: runner.os != 'Windows'
         run: |
@@ -54,12 +56,11 @@ jobs:
       - name: Install SFML
         run: ./vcpkg/vcpkg install sfml --triplet=${{ matrix.triplet }}
 
+
       - name: Configure & Build (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          # 添加 MSVC 环境
-          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.ps1"
           cmake -B build -S . `
             -G "Visual Studio 17 2022" -A x64 `
             -DCMAKE_TOOLCHAIN_FILE="$env:GITHUB_WORKSPACE\vcpkg\scripts\buildsystems\vcpkg.cmake"
@@ -69,13 +70,14 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          # 让 CMake 找到 vcpkg 提供的 SFMLConfig.cmake
           export SFML_DIR="${{ github.workspace }}/vcpkg/installed/${{ matrix.triplet }}/share/sfml"
+          export CMAKE_PREFIX_PATH="${{ github.workspace }}/vcpkg/installed/${{ matrix.triplet }}"
+          export VCPKG_TARGET_TRIPLET="${{ matrix.triplet }}"
+          export VCPKG_APPLOCAL_DEPS=ON
           cmake -B build -S . \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" \
-            -DCMAKE_PREFIX_PATH="${{ github.workspace }}/vcpkg/installed/${{ matrix.triplet }}"
+            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake"
           cmake --build build --config Release
           
       - name: Package
