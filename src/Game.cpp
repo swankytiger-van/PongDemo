@@ -3,6 +3,7 @@
 #include <SFML/Config.hpp>
 #include <iostream>
 #include <cmath> 
+#include <SFML/Window/Event.hpp>
 struct VersionCheck {
     VersionCheck() {
         std::cout << "SFML_MAJOR: " << SFML_VERSION_MAJOR
@@ -68,8 +69,7 @@ namespace {
     }
 } // namespace
 
-Game::Game(unsigned width, unsigned height, const std::string& title)
-    : m_window(sf::VideoMode({ width, height }), title)
+Game::Game(unsigned width, unsigned height, const std::string& title): m_window(sf::VideoMode({ width, height }), title)
 {
     m_window.setVerticalSyncEnabled(true);
 
@@ -88,6 +88,16 @@ Game::Game(unsigned width, unsigned height, const std::string& title)
     m_leftPaddle.emplace(20.f, 250.f, 15.f, 100.f, true);   // 左拍
     m_rightPaddle.emplace(765.f, 250.f, 15.f, 100.f, false); // 右拍
 
+
+    m_fpsText.emplace(*m_font, "FPS: --", 20u);
+    m_fpsText->setFillColor(sf::Color::White);
+    m_fpsText->setPosition(sf::Vector2f(10.f, 10.f));
+    
+
+    m_ballText.emplace(*m_font, "Ball pos: --", 20u);
+    m_ballText->setFillColor(sf::Color::White);
+    m_ballText->setPosition(sf::Vector2f(10.f, 35.f));
+
 	// 构造球
     m_ball.emplace(400.f, 300.f, 10.f);
     m_ball->velocity = sf::Vector2f(400.f, 0.f);
@@ -102,21 +112,26 @@ Game::Game(unsigned width, unsigned height, const std::string& title)
     centreText(*m_gameOverText, WINDOW_W / 2.f, WINDOW_H / 2.f);
 }
 
-void Game::run() {
+void Game::run()
+{
     sf::Clock clock;
-    while (m_window.isOpen()) {
+    while (m_window.isOpen())
+    {
         sf::Time dt = clock.restart();
         if (dt.asSeconds() > 0.05f) dt = sf::seconds(0.05f);
 
-        // 用 optional 接住事件
-        while (auto ev = m_window.pollEvent()) {
-            if (ev->is<sf::Event::Closed>()) m_window.close();
-            handleEvent(*ev);
+        // 1. 事件
+        while (const auto optEv = m_window.pollEvent())
+        {
+            handleEvent(*optEv);
         }
 
+        // 2. 逻辑
         update(dt);
+
+        // 3. 渲染
         m_window.clear(sf::Color::Black);
-        draw();
+        draw(dt);
         m_window.display();
     }
 }
@@ -124,6 +139,7 @@ void Game::run() {
 
 // 事件分发
 void Game::handleEvent(const sf::Event& ev) {
+
     // 单层解包即可
     if (auto kp = ev.getIf<sf::Event::KeyPressed>()) {
         sf::Keyboard::Key key = kp->code;
@@ -148,7 +164,10 @@ void Game::handleEvent(const sf::Event& ev) {
 // 更新分发
 void Game::update(sf::Time dt) {
     switch (m_state) {
-    case State::Menu:    menuUpdate(dt);    break;
+    case State::Menu:    
+        menuUpdate(dt);    
+
+        break;
     case State::Playing:
         // 1. 更新拍子
         if (m_leftPaddle)   m_leftPaddle->update(dt.asSeconds(), true);
@@ -156,7 +175,7 @@ void Game::update(sf::Time dt) {
 
         // 2. 更新球
         if (m_ball)         m_ball->update(dt.asSeconds());
-
+        playingDraw(dt);
         // 3. 碰撞检测（放在球更新之后，防止“穿模”,）
         if (m_ball && m_leftPaddle && m_ball->collideCooldown == 0) {
             sf::FloatRect paddleAABB = m_leftPaddle->getGlobalBounds();
@@ -213,22 +232,49 @@ void Game::update(sf::Time dt) {
                 std::cout << "[Game] right paddle swept hit\n";
             }
         }
-        
+
         break;
+    
+    case State::Paused:  
+        pausedUpdate(dt);  
+
         break;
 
+    case State::GameOver:
+        gameOverUpdate(dt); 
 
         break;
     default:
         std::cout << "[Game] Other state\n";
+
         break;
-    case State::Paused:  pausedUpdate(dt);  break;
-    case State::GameOver:gameOverUpdate(dt); break;
+    
+    
+    }
+    // 更新调试面板
+    static sf::Clock fpsClock;
+    static int frameCount = 0;
+    frameCount++;
+    if (fpsClock.getElapsedTime() >= sf::seconds(0.25f)) {
+        float fps = frameCount / fpsClock.getElapsedTime().asSeconds();
+        if (m_fpsText)                                    
+            m_fpsText->setString("FPS: " + std::to_string(static_cast<int>(fps)));
+        frameCount = 0;
+        fpsClock.restart();
+    }
+    if (m_ball && m_ballText) {                     
+        sf::Vector2f pos = m_ball->getPosition();
+        sf::Vector2f vel = m_ball->velocity;
+        m_ballText->setString(
+            "Ball pos: " + std::to_string(static_cast<int>(pos.x)) + "," +
+            std::to_string(static_cast<int>(pos.y)) + "\n" +
+            "Vel: " + std::to_string(static_cast<int>(vel.x)) + "," +
+            std::to_string(static_cast<int>(vel.y)));
     }
 }
 
 // 绘制分发
-void Game::draw() {
+void Game::draw(sf::Time dt){
     m_window.clear(sf::Color::Black);   // 统一清屏
 
     switch (m_state) {
@@ -236,14 +282,14 @@ void Game::draw() {
         menuDraw();
         break;
     case State::Playing:
-        playingDraw();   // 后续画球拍 & 球
+        playingDraw(dt);   // 后续画球拍 & 球
         break;
     case State::Paused:
-        playingDraw();   // 继续画场景，只是叠一层文字
-        pausedDraw();
+        playingDraw(dt);   // 继续画场景，只是叠一层文字
+        pausedDraw(dt);
         break;
     case State::GameOver:
-        playingDraw();   // 保留场地
+        playingDraw(dt);   // 保留场地
         gameOverDraw();
         break;
     }
@@ -275,27 +321,26 @@ void Game::pausedUpdate(sf::Time dt) { /*TODO*/ }
 void Game::gameOverUpdate(sf::Time dt) { /*TODO*/ }
 
 void Game::menuDraw() { if (m_menuText)   m_window.draw(*m_menuText); }
-void Game::pausedDraw() { 
-    playingDraw();
+void Game::pausedDraw(sf::Time dt) {
+    playingDraw(dt);
     if (m_pauseText)  m_window.draw(*m_pauseText); 
 }
 void Game::gameOverDraw() { if (m_gameOverText)m_window.draw(*m_gameOverText); }
-void Game::playingDraw() { 
+void Game::playingDraw(sf::Time dt) {
     // 1. 画场景（黑底）
     m_window.clear(sf::Color::Black);
 
     // 2. 画球拍（红色，一眼可见）
-    if (m_leftPaddle) {
-        m_leftPaddle->setFillColor(sf::Color::Red);  
-        m_window.draw(*m_leftPaddle);
-    }
-    if (m_rightPaddle) {
-        m_rightPaddle->setFillColor(sf::Color::Green);  
-        m_window.draw(*m_rightPaddle);
-    }
+    if (m_leftPaddle)   m_window.draw(*m_leftPaddle);
+    if (m_rightPaddle)  m_window.draw(*m_rightPaddle);
 
 	// 3. 画球
     if (m_ball)         m_window.draw(*m_ball);
+
+    // 4. 调试面板
+    if (m_fpsText)   m_window.draw(*m_fpsText);
+    if (m_ballText)  m_window.draw(*m_ballText);
+    
 
 }
 

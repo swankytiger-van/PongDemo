@@ -1,20 +1,25 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 
-class Paddle : public sf::RectangleShape {
+class Paddle : public sf::Drawable              
+{
 public:
     Paddle(float x, float y, float width, float height, bool isLeft);
 
-    // 每帧更新
-    void update(float dt,bool isLeft);
-    // 绘制（RectangleShape 自带 draw）
-    void draw(sf::RenderWindow& window);
+    void update(float dt, bool isLeft);        
+    void draw(sf::RenderWindow& window);       // 自己画半圆
 
-    // 辅助：中心 Y / 半高
+    // 原来那些辅助
     float centerY() const;
     float halfHeight() const;
+    sf::FloatRect getGlobalBounds() const;     // 提供 AABB 给外部碰撞
 
 private:
-    float speed = 500.f;   // 像素/秒
-    bool m_isLeft = false;   // 成员标记
+    virtual void draw(sf::RenderTarget& tgt, sf::RenderStates states) const override;
+
+    sf::CircleShape m_shape;   // 半圆外观
+    float m_halfWidth;         // 保存半宽，用于 AABB
+    float m_halfHeight;
+    float speed = 500.f;
+    bool m_isLeft = false;
 };

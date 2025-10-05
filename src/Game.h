@@ -14,7 +14,7 @@ public:
     // ×´Ì¬ÇÐ»»
     void handleEvent(const sf::Event& ev);
     void update(sf::Time dt);
-    void draw();
+    void draw(sf::Time dt);
 
     State state() const { return m_state; }
     void setState(State s) { m_state = s; }
@@ -31,12 +31,14 @@ private:
     void gameOverUpdate(sf::Time dt);
 
     void menuDraw();
-    void playingDraw();
-    void pausedDraw();
+    void playingDraw(sf::Time dt);
+    void pausedDraw(sf::Time dt);
     void gameOverDraw();
 
     std::optional<Paddle> m_leftPaddle;
     std::optional<Paddle> m_rightPaddle;
+    std::optional<sf::Text> m_fpsText;
+    std::optional<sf::Text> m_ballText;
 
     std::optional<Ball> m_ball;
 
