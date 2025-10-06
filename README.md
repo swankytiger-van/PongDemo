@@ -22,11 +22,11 @@
 - [x] 环境搭建：SFML + CMake + vcpkg + GitHub Actions ✔  
 - [x] 最小可运行 Demo：窗口 + 事件循环 + 绿色圆球 ✔  
 - [x] 三平台 CI 自动构建 & Release 可执行包 ✔  
-- [ ] 核心玩法：双人乒乓（球拍、球、碰撞、得分、重置）  
+- [x] 核心玩法：双人乒乓（球拍、球、碰撞、得分、重置）✔  
 - [ ] 本地 AI 算法：minimax + alpha-beta 可调难度  
-- [ ] 网络联机：asio C++20 协程 + 客户端预测 + 服务器权威  
+- [ ] 玩法设计创新：类弹球游戏，刷新各种道具与地形
 - [ ] Tracy 性能剖析：帧时间、GPU 占用、内存波浪图  
-- [ ] 音效 + 粒子 + ImGui 调试面板  
+- [ ] 网络联机：asio C++20 协程 + 客户端预测 + 服务器权威 
 - [ ] 关卡编辑器（Qt/QML 或 ImGui）  
 
 ---
@@ -35,7 +35,7 @@
 | 组件 | 选型 | 备注 |
 |----|------|------|
 | 语言 | C++20 | MSVC / GCC / Clang 均支持 |
-| 图形 | SFML 2.6 | 2D 硬件加速，OpenGL 后端 |
+| 图形 | SFML 3.0.2 | 2D 硬件加速，OpenGL 后端 |
 | 包管理 | vcpkg | 一键拉取 SFML、asios、Tracy、doctest |
 | 构建 | CMake ≥ 3.20 | 支持 Presets / Ninja / VS |
 | CI/CD | GitHub Actions | 并行编译 Win/Linux/macOS，自动上传 Release |
