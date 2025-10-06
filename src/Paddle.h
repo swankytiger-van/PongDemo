@@ -6,7 +6,8 @@ class Paddle : public sf::Drawable
 public:
     Paddle(float x, float y, float width, float height, bool isLeft);
 
-    void update(float dt, bool isLeft);        
+    void update(float dt, bool isLeft);  
+    void setPosition(sf::Vector2f pos);
     void draw(sf::RenderWindow& window);       // 自己画半圆
 
     // 原来那些辅助

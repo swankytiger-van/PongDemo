@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cmath> 
 #include <SFML/Window/Event.hpp>
+#include <cstdint>
 struct VersionCheck {
     VersionCheck() {
         std::cout << "SFML_MAJOR: " << SFML_VERSION_MAJOR
@@ -110,6 +111,42 @@ Game::Game(unsigned width, unsigned height, const std::string& title): m_window(
 
     m_gameOverText->setFillColor(sf::Color::Red);
     centreText(*m_gameOverText, WINDOW_W / 2.f, WINDOW_H / 2.f);
+
+    // 菜单卡片
+    m_menuCard.emplace();                       // ① 默认构造
+    m_menuCard->init(sf::Vector2f(400, 300), sf::Color(0, 0, 0, 220)); // ② 事后初始化
+    m_menuCard->setPosition(sf::Vector2f(WINDOW_W / 2.f - 200.f, WINDOW_H / 2.f - 150.f));
+
+
+    // 大标题
+    m_titleText.emplace(*m_font, "PONG  CORE", 60u);   // 三个参数都要
+    m_titleText->setFillColor(sf::Color(0, 255, 150));
+    centreText(*m_titleText, WINDOW_W / 2.f, WINDOW_H / 2.f - 120.f);
+    
+    // 开始/退出 按钮
+    auto addBtn = [&](const std::string& label, float y) {
+        m_menuBtns.emplace_back();                       // 推空 optional
+        auto& btn = m_menuBtns.back().emplace();         // 默认构造
+
+        btn.rect.setSize(sf::Vector2f(200, 50));
+        btn.rect.setFillColor(sf::Color(50, 50, 50));
+        btn.rect.setOutlineThickness(2);
+        btn.rect.setOutlineColor(sf::Color::White);
+        btn.rect.setPosition(sf::Vector2f(WINDOW_W / 2.f - 100.f, y));
+
+        btn.init(*m_font, label, 24u);                   // 填真实数据
+
+        if (btn.text)    // 确保已构造
+            centreText(*btn.text,
+                btn.rect.getPosition().x + 100.f,
+                btn.rect.getPosition().y + 25.f);
+        };
+    addBtn("START", WINDOW_H / 2.f - 40.f);
+    addBtn("EXIT", WINDOW_H / 2.f + 40.f);
+
+    m_helpText.emplace(*m_font, "Left: W/S   Right: UP/DN   ESC: Menu   Space:Pause", 18u);
+    m_helpText->setFillColor(sf::Color(200, 200, 200, 180));
+    centreText(*m_helpText, WINDOW_W / 2.f, 10.f);   
 }
 
 void Game::run()
@@ -138,29 +175,59 @@ void Game::run()
 
 
 // 事件分发
-void Game::handleEvent(const sf::Event& ev) {
+void Game::handleEvent(const sf::Event& ev)
+{
+    // 1. 菜单按钮点击（只在菜单状态处理）
+    if (m_state == State::Menu && ev.is<sf::Event::MouseButtonPressed>())
+    {
+        auto mp = sf::Vector2f(ev.getIf<sf::Event::MouseButtonPressed>()->position);
+        for (auto& opt : m_menuBtns)
+        {
+            if (!opt) continue;
+            Button& btn = *opt;
+            if (btn.click(mp))
+            {
+                // 点击下沉动画
+                btn.rect.setScale(sf::Vector2f(0.95f, 0.95f));
 
-    // 单层解包即可
-    if (auto kp = ev.getIf<sf::Event::KeyPressed>()) {
-        sf::Keyboard::Key key = kp->code;
-        if (key == sf::Keyboard::Key::Escape) {
-            m_window.close();
+                if (btn.text->getString() == "START")
+                {
+                    setState(State::Playing);
+                    reset();          // 新开一局
+                }
+                else if (btn.text->getString() == "EXIT")
+                {
+                    m_window.close();
+                }
+                break; // 只点一个
+            }
         }
-        else if (key == sf::Keyboard::Key::Space) {
+        return; // 菜单事件处理完就退，不再走键盘
+    }
+
+    // 2. 原键盘逻辑
+    if (auto kp = ev.getIf<sf::Event::KeyPressed>())
+    {
+        sf::Keyboard::Key key = kp->code;
+        if (key == sf::Keyboard::Key::Escape)
+        {
+            // 新逻辑：菜单→退出，其他→回菜单
+            if (m_state == State::Menu)
+                m_window.close();
+            else
+                setState(State::Menu);
+        }
+        else if (key == sf::Keyboard::Key::Space)
+        {
             if (m_state == State::Menu || m_state == State::Paused)
                 setState(State::Playing);
             else if (m_state == State::Playing)
                 setState(State::Paused);
         }
-        else if (key == sf::Keyboard::Key::R) {
+        else if (key == sf::Keyboard::Key::R)
             reset();
-        }
     }
-    
-
-
 }
-
 // 更新分发
 void Game::update(sf::Time dt) {
     switch (m_state) {
@@ -270,13 +337,22 @@ void Game::update(sf::Time dt) {
             std::to_string(static_cast<int>(pos.y)) + "\n" +
             "Vel: " + std::to_string(static_cast<int>(vel.x)) + "," +
             std::to_string(static_cast<int>(vel.y)));
+
     }
+    // 淡入淡出
+    if (m_state != State::Playing)
+        m_fadeAlpha = std::min(m_fadeAlpha + 5, 200);
+    else
+        m_fadeAlpha = std::max(m_fadeAlpha - 5, 0);
 }
 
 // 绘制分发
 void Game::draw(sf::Time dt){
     m_window.clear(sf::Color::Black);   // 统一清屏
-
+    sf::RectangleShape fade;
+    fade.setSize(sf::Vector2f(WINDOW_W, WINDOW_H));
+    fade.setFillColor(sf::Color(0, 0, 0, static_cast<std::uint8_t>(m_fadeAlpha)));
+    m_window.draw(fade);
     switch (m_state) {
     case State::Menu:
         menuDraw();
@@ -298,7 +374,37 @@ void Game::draw(sf::Time dt){
 }
 
 // 各状态空实现，后续填逻辑
-void Game::menuUpdate(sf::Time dt) { /*TODO*/ }
+void Game::menuUpdate(sf::Time dt)
+{
+    // 呼吸标题（可选）
+    static float breath = 0.f;
+    breath += dt.asSeconds() * 3.f;
+    float scale = 1.f + std::sin(breath) * 0.05f;
+    if (m_titleText)
+        m_titleText->setScale(sf::Vector2f(scale, scale));
+
+    // 悬停检测
+    sf::Vector2f mp = sf::Vector2f(sf::Mouse::getPosition(m_window));
+    for (auto& opt : m_menuBtns)
+    {
+        if (!opt) continue;
+        Button& btn = *opt;
+        bool nowHover = btn.click(mp);
+        if (nowHover && !btn.hovered)      // 悬停进入
+        {
+            btn.rect.setFillColor(sf::Color(80, 80, 80));
+            btn.rect.setScale(sf::Vector2f(1.05f, 1.05f));
+        }
+        else if (!nowHover && btn.hovered) // 悬停离开
+        {
+            btn.rect.setFillColor(sf::Color(50, 50, 50));
+            btn.rect.setScale(sf::Vector2f(1.f, 1.f));
+        }
+        btn.hovered = nowHover;
+        if (!btn.hovered) btn.rect.setScale(sf::Vector2f(1.f, 1.f)); // 松手弹回
+    }
+
+}
 void Game::playingUpdate(sf::Time dt) {
     if (m_ball && m_leftPaddle) {
         sf::FloatRect ballAABB = m_ball->getAABB();
@@ -320,7 +426,21 @@ void Game::playingUpdate(sf::Time dt) {
 void Game::pausedUpdate(sf::Time dt) { /*TODO*/ }
 void Game::gameOverUpdate(sf::Time dt) { /*TODO*/ }
 
-void Game::menuDraw() { if (m_menuText)   m_window.draw(*m_menuText); }
+void Game::menuDraw()
+{
+    // 1. 卡片背景
+    m_window.draw(*m_menuCard);
+    // 2. 标题
+    m_window.draw(*m_titleText);
+    // 3. 按钮
+    for (const auto& opt : m_menuBtns)
+    {
+        if (!opt) continue;
+        const Button& btn = *opt;
+        m_window.draw(btn.rect);
+        if (btn.text) m_window.draw(*btn.text);
+    }
+}
 void Game::pausedDraw(sf::Time dt) {
     playingDraw(dt);
     if (m_pauseText)  m_window.draw(*m_pauseText); 
@@ -340,14 +460,34 @@ void Game::playingDraw(sf::Time dt) {
     // 4. 调试面板
     if (m_fpsText)   m_window.draw(*m_fpsText);
     if (m_ballText)  m_window.draw(*m_ballText);
-    
+    // 5. 顶部提示
+    if (m_helpText) m_window.draw(*m_helpText);
 
 }
 
 
 // 一局重置
-void Game::reset() {
-    setState(State::Menu);
-    // 后续重置球位置、得分
+void Game::reset()
+{
+    // 1. 球回中点 + 初始速度
+    if (m_ball)
+    {
+        m_ball->setPosition(sf::Vector2f(WINDOW_W / 2.f, WINDOW_H / 2.f));
+        m_ball->velocity = sf::Vector2f(400.f, 0.f);   // 向右发球
+        m_ball->collideCooldown = 0;
+    }
+
+    // 2. 拍子回中点
+    if (m_leftPaddle)
+        m_leftPaddle->setPosition(sf::Vector2f(20.f, WINDOW_H / 2.f - 50.f));
+    if (m_rightPaddle)
+        m_rightPaddle->setPosition(sf::Vector2f(WINDOW_W - 35.f, WINDOW_H / 2.f - 50.f));
+
+    // 3. 得分清零（后续加）
+    // m_leftScore = 0;
+    // m_rightScore = 0;
+
+    // 4. 不再切回菜单！让调用者自己决定状态
+    // setState(State::Menu);   // ← 注释掉
 }
 

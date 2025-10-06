@@ -48,3 +48,7 @@ sf::FloatRect Paddle::getGlobalBounds() const
         sf::Vector2f(m_halfWidth * 2.f, m_halfHeight * 2.f)
     );
 }
+void Paddle::setPosition(sf::Vector2f pos)
+{
+    m_shape.setPosition(pos);
+}
