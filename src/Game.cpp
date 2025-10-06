@@ -29,6 +29,7 @@ static void centreText(sf::Text& text, float x, float y) {
     text.setPosition(sf::Vector2f(x, y));
 }
 
+
 //优化碰撞工具
 namespace {
     // 线段 (p0→p1) 与“膨胀后的 AABB”相交测试
@@ -85,7 +86,7 @@ Game::Game(unsigned width, unsigned height, const std::string& title): m_window(
     m_pauseText.emplace( font,"PAUSED\nSpace: Resume  R: Reset", 24u);
     m_gameOverText.emplace( font,"GAME OVER\nR: Restart  Esc: Exit", 24u);
 
-    // 构造双拍（零额外资源）
+    // 构造双拍
     m_leftPaddle.emplace(20.f, 250.f, 15.f, 100.f, true);   // 左拍
     m_rightPaddle.emplace(765.f, 250.f, 15.f, 100.f, false); // 右拍
 
@@ -102,6 +103,16 @@ Game::Game(unsigned width, unsigned height, const std::string& title): m_window(
 	// 构造球
     m_ball.emplace(400.f, 300.f, 10.f);
     m_ball->velocity = sf::Vector2f(400.f, 0.f);
+
+    // 绑定出界回调
+    m_ball->setOutOfBoundsCallback([this](bool isLeft) {
+        if (isLeft)  
+            leftScore();   // 接口
+        else         
+            rightScore();  // 接口
+
+		
+        });
     //样式 & 位置
     m_menuText->setFillColor(sf::Color::White);
     centreText(*m_menuText, WINDOW_W / 2.f, WINDOW_H / 2.f - 40.f);
@@ -146,7 +157,29 @@ Game::Game(unsigned width, unsigned height, const std::string& title): m_window(
 
     m_helpText.emplace(*m_font, "Left: W/S   Right: UP/DN   ESC: Menu   Space:Pause", 18u);
     m_helpText->setFillColor(sf::Color(200, 200, 200, 180));
-    centreText(*m_helpText, WINDOW_W / 2.f, 10.f);   
+    centreText(*m_helpText, WINDOW_W / 2.f, WINDOW_H - 20.f);
+
+    // 得分文字
+    m_leftScoreText.emplace(*m_font, "0", 48u);
+    m_leftScoreText->setFillColor(sf::Color::Green);
+    m_rightScoreText.emplace(*m_font, "0", 48u);
+    m_rightScoreText->setFillColor(sf::Color::Green);
+    // 顶部居中
+    centreText(*m_leftScoreText, WINDOW_W / 2.f - 60.f, 40.f);
+    centreText(*m_rightScoreText, WINDOW_W / 2.f + 60.f, 40.f);
+
+	// 倒计时文字
+    // 倒计时
+    m_timeText.emplace(*m_font, "60", 36u);
+    m_timeText->setFillColor(sf::Color::Yellow);
+    centreText(*m_timeText, WINDOW_W / 2.f, 35.f);
+
+    // 发球倒计时
+    m_serveText.emplace(*m_font, "3", 120u);
+    m_serveText->setFillColor(sf::Color(255, 255, 0, 220)); // 黄
+    centreText(*m_serveText, WINDOW_W / 2.f, WINDOW_H / 2.f - 60.f);
+    m_serving = true;
+    m_serveTimer = 0.f;
 }
 
 void Game::run()
@@ -230,21 +263,56 @@ void Game::handleEvent(const sf::Event& ev)
 }
 // 更新分发
 void Game::update(sf::Time dt) {
+
+    constexpr float winW = 800.f;
+    constexpr float winH = 600.f;
+    float x = 0.f, r = 0.f;static sf::Clock timer;
     switch (m_state) {
     case State::Menu:    
         menuUpdate(dt);    
 
         break;
     case State::Playing:
+        
+        // 0. 发球倒计时（只在 Playing 且 serving）
+        if (m_state == State::Playing && m_serving)
+        {
+            m_serveTimer += dt.asSeconds();
+            if (m_serveTimer >= 1.f)
+            {
+                m_serveTimer = 0.f;
+                --m_serveCount;
+                if (m_serveText) m_serveText->setString(std::to_string(m_serveCount));
+                // 倒计时结束，立刻关闭发球阶段
+                if (m_serveCount <= 0)
+                {
+                    m_serving = false;                // 1. 关闭标志
+					m_ball->serveImmunity = 0; // 解除免疫
+                    if (m_serveText) m_serveText->setString(""); // 2. 隐藏数字
+                    if (m_ball)
+                    {
+                        // 4. 正式给速度（方向随机可再加）
+                        m_ball->velocity = sf::Vector2f(400.f, 0.f);
+                    }
+                }
+            }
+            
+            return; // 倒计时期间不更新球、拍子
+        }
         // 1. 更新拍子
         if (m_leftPaddle)   m_leftPaddle->update(dt.asSeconds(), true);
         if (m_rightPaddle)  m_rightPaddle->update(dt.asSeconds(), false);
 
         // 2. 更新球
-        if (m_ball)         m_ball->update(dt.asSeconds());
+        if (m_ball) {
+            if (m_ball->collideCooldown > 0) --m_ball->collideCooldown;
+            m_ball->update(dt.asSeconds());
+        }      
         playingDraw(dt);
+
+		
         // 3. 碰撞检测（放在球更新之后，防止“穿模”,）
-        if (m_ball && m_leftPaddle && m_ball->collideCooldown == 0) {
+        if (m_ball && m_leftPaddle && m_ball->collideCooldown == 0 && m_ball->serveImmunity == 0) {
             sf::FloatRect paddleAABB = m_leftPaddle->getGlobalBounds();
             float t = 1.f;
             if (sweepSegmentAABB(m_ball->prevPos,
@@ -275,7 +343,7 @@ void Game::update(sf::Time dt) {
         }
 
         // 右侧拍完全对称
-        if (m_ball && m_rightPaddle && m_ball->collideCooldown == 0) {
+        if (m_ball && m_rightPaddle && m_ball->collideCooldown == 0 && m_ball->serveImmunity == 0) {
             sf::FloatRect paddleAABB = m_rightPaddle->getGlobalBounds();
             float t = 1.f;
             if (sweepSegmentAABB(m_ball->prevPos,
@@ -300,8 +368,25 @@ void Game::update(sf::Time dt) {
             }
         }
 
+        
+		//倒计时 
+        
+        if (timer.getElapsedTime() >= sf::seconds(1.f))
+        {
+            timer.restart();
+            if (m_countDown > 0)
+            {
+                --m_countDown;
+                if (m_timeText) m_timeText->setString(std::to_string(m_countDown));
+            }
+            else
+            {
+                // 时间到 → 进入结束页
+                setState(State::GameOver);
+            }
+        }
+
         break;
-    
     case State::Paused:  
         pausedUpdate(dt);  
 
@@ -445,7 +530,15 @@ void Game::pausedDraw(sf::Time dt) {
     playingDraw(dt);
     if (m_pauseText)  m_window.draw(*m_pauseText); 
 }
-void Game::gameOverDraw() { if (m_gameOverText)m_window.draw(*m_gameOverText); }
+void Game::gameOverDraw() { 
+    // 胜者大文字
+    std::string winner = (m_leftScore == 11 || m_countDown == 0 && m_leftScore > m_rightScore) ?
+        "LEFT WINS!" : "RIGHT WINS!";
+    sf::Text winText(*m_font, winner, 60u);
+    winText.setFillColor(sf::Color::Yellow);
+    centreText(winText, WINDOW_W / 2.f, WINDOW_H / 2.f - 60.f);
+    m_window.draw(winText);
+}
 void Game::playingDraw(sf::Time dt) {
     // 1. 画场景（黑底）
     m_window.clear(sf::Color::Black);
@@ -460,32 +553,97 @@ void Game::playingDraw(sf::Time dt) {
     // 4. 调试面板
     if (m_fpsText)   m_window.draw(*m_fpsText);
     if (m_ballText)  m_window.draw(*m_ballText);
-    // 5. 顶部提示
+    // 5. 底部提示
     if (m_helpText) m_window.draw(*m_helpText);
+
+    // 6. 比分 + 倒计时
+    if (m_leftScoreText)  m_window.draw(*m_leftScoreText);
+    if (m_rightScoreText) m_window.draw(*m_rightScoreText);
+    if (m_timeText)       m_window.draw(*m_timeText);
+
+    if (m_serving && m_serveText)
+    {
+        m_window.draw(*m_serveText);
+    }
 
 }
 
+// 得分接口
+void Game::leftScore()
+{
+    ++m_leftScore;
+    if (m_leftScoreText)                 // 必须判空
+    {
+        m_leftScoreText->setString(std::to_string(m_leftScore)); // ← 实时更新
+        std::cout << "[Score] left = " << m_leftScore << "\n";
+    }
+        
+    scoreBlink();
+    if (m_leftScore == 11 || m_countDown == 0)
+    {
+        // 胜者出现 → 全局清零
+        newMatch();
+        setState(State::GameOver);
+    }
+    else reset();
+}
+
+void Game::rightScore()
+{
+    ++m_rightScore;
+    if (m_rightScoreText)
+        m_rightScoreText->setString(std::to_string(m_rightScore)); // ← 实时更新
+
+    scoreBlink();
+    if (m_rightScore == 11 || m_countDown == 0)
+    {
+        // 胜者出现 → 全局清零
+        newMatch();
+        setState(State::GameOver);
+    }
+    else reset();
+}
+
+void Game::newMatch()
+{
+    m_leftScore = 0;
+    m_rightScore = 0;
+    m_countDown = 60;
+    if (m_leftScoreText)  m_leftScoreText->setString("0");
+    if (m_rightScoreText) m_rightScoreText->setString("0");
+    if (m_timeText)       m_timeText->setString("60");
+}
 
 // 一局重置
 void Game::reset()
 {
-    // 1. 球回中点 + 初始速度
+    
+    
+
+// 1. 球回中点 + 初始速度
     if (m_ball)
     {
         m_ball->setPosition(sf::Vector2f(WINDOW_W / 2.f, WINDOW_H / 2.f));
         m_ball->velocity = sf::Vector2f(400.f, 0.f);   // 向右发球
         m_ball->collideCooldown = 0;
     }
+	// 拍子回初始位置
 
-    // 2. 拍子回中点
-    if (m_leftPaddle)
-        m_leftPaddle->setPosition(sf::Vector2f(20.f, WINDOW_H / 2.f - 50.f));
-    if (m_rightPaddle)
-        m_rightPaddle->setPosition(sf::Vector2f(WINDOW_W - 35.f, WINDOW_H / 2.f - 50.f));
+    
+    if (m_leftPaddle)  m_leftPaddle->setPosition(sf::Vector2f(20.f, WINDOW_H / 2.f - 50.f));
+    if (m_rightPaddle) m_rightPaddle->setPosition(sf::Vector2f(WINDOW_W - 35.f, WINDOW_H / 2.f - 50.f));
 
-    // 3. 得分清零（后续加）
-    // m_leftScore = 0;
-    // m_rightScore = 0;
+
+	//m_ball->serveImmunity = 0; 
+
+    // 2. 重置发球倒计时
+    m_serving = true;
+    m_serveCount = 3;
+    m_serveTimer = 0.f;
+    if (m_serveText) m_serveText->setString("3");
+
+
+    
 
     // 4. 不再切回菜单！让调用者自己决定状态
     // setState(State::Menu);   // ← 注释掉

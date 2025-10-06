@@ -18,12 +18,14 @@ bool Ball::intersect(const sf::FloatRect& a, const sf::FloatRect& b) {
 }
 
 // 每帧更新：移动 + 边界反弹
-void Ball::update(float dt) {
+void Ball::update(float dt)
+{
     prevPos = getPosition();
-    if (collideCooldown > 0) --collideCooldown;
+    
+    
     move(velocity * dt);
 
-    // 上下边界反弹
+    // 上下边界反弹（保留）
     float y = getPosition().y;
     float r = getRadius();
     float winH = 600.f;
@@ -36,22 +38,21 @@ void Ball::update(float dt) {
         setPosition(sf::Vector2f(getPosition().x, winH - r));
     }
 
-    // 左右边界反弹 + 得分重置（零额外文件）
+    // 左右出界 → 只报告，不决策
     float x = getPosition().x;
-    float winW = 800.f;   // 后续放 Constants.h
-    if (x - r < 0.f) {
-        // 右拍得分 + 重置
-        velocity.x = -velocity.x;
-        setPosition(sf::Vector2f(winW / 2.f, winH / 2.f));
-        velocity.y = 0.f;   // 水平发球
-        std::cout << "[Ball] left out → right score + reset\n";
+    float winW = 800.f;
+    if (x - r < 0.f && m_outOfBounds)      // 左出界
+    {
+        m_outOfBounds(true);
+        serveImmunity = 1; // 出界后短暂免疫碰撞,防止reset的时候球被拍子卡住的BUG
+        std::cout << "serveImmunity = 1" << std::endl;
     }
-    if (x + r > winW) {
-        // 左拍得分 + 重置
-        velocity.x = -velocity.x;
-        setPosition(sf::Vector2f(winW / 2.f, winH / 2.f));
-        velocity.y = 0.f;   // 水平发球
-        std::cout << "[Ball] right out → left score + reset\n";
+        
+    if (x + r > winW && m_outOfBounds)     // 右出界
+    {
+        m_outOfBounds(false);
+        serveImmunity = 1; // 出界后短暂免疫碰撞,防止reset的时候球被拍子卡住的BUG
+        std::cout << "serveImmunity = 1" << std::endl;
     }
 }
 

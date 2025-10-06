@@ -94,8 +94,14 @@ public:
     void setState(State s) { m_state = s; }
 
     // 得分接口（先留空，后续加 Ball/Paddle 再实现）
-    void leftScore() { /*TODO*/ }
-    void rightScore() { /*TODO*/ reset(); }
+    void leftScore();
+    void rightScore();
+
+	void scoreBlink()// 闪烁计时重置
+    {
+        m_scoreBlink = 0.f;
+    }
+    void newMatch();   // 新开一局（清零分数+倒计时）
 
 private:
     void reset();   // 一局重置
@@ -121,6 +127,22 @@ private:
 	int m_fadeAlpha = 0;// 渐变遮罩透明度
     std::optional<sf::Text> m_titleText;      // 大标题
     std::vector<std::optional<Button>> m_menuBtns;   // 开始/退出 按钮
+
+    // 得分
+    int  m_leftScore = 0;
+    int  m_rightScore = 0;
+    std::optional<sf::Text> m_leftScoreText;
+    std::optional<sf::Text> m_rightScoreText;
+    float m_scoreBlink = 0.f;   // 闪烁计时
+
+    int  m_countDown = 60;                // 秒
+    std::optional<sf::Text> m_timeText;   // 倒计时文字
+
+    int  m_serveCount = 3;          // 发球倒计时 3→0
+    std::optional<sf::Text> m_serveText; // 大数字
+    bool  m_serving = true;         // 是否处于发球倒计时
+    float m_serveTimer = 0.f;       // 内部计时
+
 
     sf::RenderWindow m_window;
     State            m_state = State::Menu;

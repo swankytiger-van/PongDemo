@@ -1,9 +1,13 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <functional>  
 
 class Ball : public sf::CircleShape {
 public:
     Ball(float x, float y, float radius);
+    using OutOfBoundsCallback = std::function<void(bool isLeft)>;
+    // 绑定出界回调（Game 会调用）
+    void setOutOfBoundsCallback(OutOfBoundsCallback cb) { m_outOfBounds = std::move(cb); }
     static bool intersect(const sf::FloatRect& a, const sf::FloatRect& b);
     sf::Vector2f prevPos;
     int collideCooldown = 0;
@@ -21,8 +25,10 @@ public:
     sf::Vector2f velocity{ 400.f, 0.f };   // 像素/秒
     // 碰撞响应
     void hitPaddle(float paddleCenterY, float paddleHalfHeight);
+	int serveImmunity = 0;// 球是否免疫碰撞
 
 private:
     
     float speed = 500.f;                 // 可调速度
+	OutOfBoundsCallback m_outOfBounds; // 出界回调
 };
