@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include "Paddle.h"
 #include "Ball.h"
+#include "AiPaddle.h" 
 enum class State { Menu, Playing, Paused, GameOver };
 
 struct RoundedRect : sf::Drawable
@@ -142,6 +143,12 @@ private:
     std::optional<sf::Text> m_serveText; // 大数字
     bool  m_serving = true;         // 是否处于发球倒计时
     float m_serveTimer = 0.f;       // 内部计时
+
+    // ===== AI =====
+
+    bool m_aiEnabled = false;               // 开关
+    
+    std::unique_ptr<AiPaddle> m_ai;   // 指针延迟构造，避免 Paddle 前向引用
 
 
     sf::RenderWindow m_window;

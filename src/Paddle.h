@@ -14,6 +14,7 @@ public:
     float centerY() const;
     float halfHeight() const;
     sf::FloatRect getGlobalBounds() const;     // 提供 AABB 给外部碰撞
+    sf::Vector2f getPosition() const { return m_shape.getPosition(); }
 
 private:
     virtual void draw(sf::RenderTarget& tgt, sf::RenderStates states) const override;

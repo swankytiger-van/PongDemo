@@ -5,6 +5,7 @@
 #include <cmath> 
 #include <SFML/Window/Event.hpp>
 #include <cstdint>
+#include "AiPaddle.h"
 struct VersionCheck {
     VersionCheck() {
         std::cout << "SFML_MAJOR: " << SFML_VERSION_MAJOR
@@ -152,10 +153,11 @@ Game::Game(unsigned width, unsigned height, const std::string& title): m_window(
                 btn.rect.getPosition().x + 100.f,
                 btn.rect.getPosition().y + 25.f);
         };
-    addBtn("START", WINDOW_H / 2.f - 40.f);
-    addBtn("EXIT", WINDOW_H / 2.f + 40.f);
+    addBtn("START", WINDOW_H / 2.f - 80.f);
+    addBtn("AI VS", WINDOW_H / 2.f - 15.f);
+    addBtn("EXIT", WINDOW_H / 2.f + 50.f);
 
-    m_helpText.emplace(*m_font, "Left: W/S   Right: UP/DN   ESC: Menu   Space:Pause", 18u);
+    m_helpText.emplace(*m_font, "Left: W/S   Right: UP/DN   ESC: Menu   Space:Pause  F2: Toggle AI", 18u);
     m_helpText->setFillColor(sf::Color(200, 200, 200, 180));
     centreText(*m_helpText, WINDOW_W / 2.f, WINDOW_H - 20.f);
 
@@ -180,6 +182,14 @@ Game::Game(unsigned width, unsigned height, const std::string& title): m_window(
     centreText(*m_serveText, WINDOW_W / 2.f, WINDOW_H / 2.f - 60.f);
     m_serving = true;
     m_serveTimer = 0.f;
+
+
+
+
+    //AI对战功能
+    m_aiEnabled = false;   // 默认双人
+    m_ai = std::make_unique<AiPaddle>(0.75f);   // 默认难度
+
 }
 
 void Game::run()
@@ -228,6 +238,11 @@ void Game::handleEvent(const sf::Event& ev)
                     setState(State::Playing);
                     reset();          // 新开一局
                 }
+                else if (btn.text->getString() == "AI VS") {
+                    m_aiEnabled = true;    // AI 对战
+                    setState(State::Playing);
+                    reset();
+                }
                 else if (btn.text->getString() == "EXIT")
                 {
                     m_window.close();
@@ -256,6 +271,11 @@ void Game::handleEvent(const sf::Event& ev)
                 setState(State::Playing);
             else if (m_state == State::Playing)
                 setState(State::Paused);
+        }
+        else if (key == sf::Keyboard::Key::F2)
+        {
+            m_aiEnabled = !m_aiEnabled;
+            std::cout << "[Game] AI " << (m_aiEnabled ? "ON" : "OFF") << "\n";
         }
         else if (key == sf::Keyboard::Key::R)
             reset();
@@ -301,7 +321,12 @@ void Game::update(sf::Time dt) {
         }
         // 1. 更新拍子
         if (m_leftPaddle)   m_leftPaddle->update(dt.asSeconds(), true);
-        if (m_rightPaddle)  m_rightPaddle->update(dt.asSeconds(), false);
+        if (m_rightPaddle && !m_aiEnabled)                                // 仅当关闭 AI 才用键盘
+            m_rightPaddle->update(dt.asSeconds(), false);
+        // AI 接管右拍
+        if (m_aiEnabled && m_rightPaddle)
+            m_ai->update(*m_rightPaddle, *m_ball, dt);
+
 
         // 2. 更新球
         if (m_ball) {
